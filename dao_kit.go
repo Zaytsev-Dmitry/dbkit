@@ -50,16 +50,27 @@ func ExecuteQuery[T any](needTx bool, queryType string, db *sqlx.DB, query, acti
 }
 
 func executeByType[T any](out *T, exec interface{}, queryType, query string, args ...interface{}) error {
-	switch queryType {
-	case Get:
-		return exec.(*sqlx.DB).Get(out, query, args...)
-	case Select:
-		return exec.(*sqlx.DB).Select(out, query, args...)
-	case QueryRowx:
-		return exec.(*sqlx.DB).QueryRowx(query, args...).StructScan(out)
-	default:
-		return fmt.Errorf("unknown query type: %s", queryType)
+	switch e := exec.(type) {
+	case *sqlx.DB:
+		switch queryType {
+		case Get:
+			return e.Get(out, query, args...)
+		case Select:
+			return e.Select(out, query, args...)
+		case QueryRowx:
+			return e.QueryRowx(query, args...).StructScan(out)
+		}
+	case *sqlx.Tx:
+		switch queryType {
+		case Get:
+			return e.Get(out, query, args...)
+		case Select:
+			return e.Select(out, query, args...)
+		case QueryRowx:
+			return e.QueryRowx(query, args...).StructScan(out)
+		}
 	}
+	return fmt.Errorf("unknown query type or executor")
 }
 
 func ExecuteQueryWithOutEntityResponse(db *sqlx.DB, query, action string, args ...interface{}) *custom_error.CustomError {
