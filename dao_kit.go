@@ -20,9 +20,9 @@ func ExecuteQuery[T any](needTx bool, queryType string, db *sqlx.DB, query, acti
 	run := func(exec interface{}) error {
 		switch e := exec.(type) {
 		case *sqlx.DB:
-			return execute(&result, e, queryType, query, args...)
+			return executeByType(&result, e, queryType, query, args...)
 		case *sqlx.Tx:
-			return execute(&result, e, queryType, query, args...)
+			return executeByType(&result, e, queryType, query, args...)
 		default:
 			return fmt.Errorf("unsupported executor type")
 		}
@@ -49,14 +49,14 @@ func ExecuteQuery[T any](needTx bool, queryType string, db *sqlx.DB, query, acti
 	return &result, nil
 }
 
-func execute[T any](out *T, exec interface{}, queryType, query string, args ...interface{}) error {
+func executeByType[T any](out *T, exec interface{}, queryType, query string, args ...interface{}) error {
 	switch queryType {
 	case Get:
 		return exec.(*sqlx.DB).Get(out, query, args...)
-	case QueryRowx:
-		return exec.(*sqlx.DB).QueryRowx(query, args...).StructScan(out)
 	case Select:
 		return exec.(*sqlx.DB).Select(out, query, args...)
+	case QueryRowx:
+		return exec.(*sqlx.DB).QueryRowx(query, args...).StructScan(out)
 	default:
 		return fmt.Errorf("unknown query type: %s", queryType)
 	}
